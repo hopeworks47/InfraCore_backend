@@ -4,6 +4,8 @@ from app.core.security import hash_password, verify_password
 async def get_user_by_email(db, email: str):
     return await db.users.find_one({"email": email})
 
+async def fetch_users(db):
+    return await db.users.find().to_list(length=None)
 
 async def create_user(db, email: str, password: str):
     user = {
