@@ -1,3 +1,6 @@
+
+from fastapi import UploadFile, File, Form
+from typing import Optional
 from datetime import datetime
 
 from app.core.security import hash_password, verify_password
@@ -9,11 +12,6 @@ async def get_user_by_email(db, email: str):
 
 async def fetch_users(db):
     return await db.users.find().to_list(length=None)
-
-
-from fastapi import UploadFile, File, Form
-from typing import Optional
-
 
 async def create_user(
         db,
