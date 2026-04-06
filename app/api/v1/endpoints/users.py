@@ -16,8 +16,6 @@ async def get_users(db=Depends(get_db)):
     users = await fetch_users(db)
     return jsonable_encoder(users, custom_encoder={ObjectId: str})
 
-router = APIRouter()
-
 @router.get("/me", response_model=UserOut)
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """
