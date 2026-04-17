@@ -19,3 +19,7 @@ async def save_profile_image(file: UploadFile) -> str:
         shutil.copyfileobj(file.file, buffer)
     # Return relative path (or full URL)
     return f"/uploads/profile_images/{filename}"
+
+def delete_old_image(image_path: str):
+    if image_path and os.path.exists(image_path.lstrip("/")):
+        os.remove(image_path.lstrip("/"))
