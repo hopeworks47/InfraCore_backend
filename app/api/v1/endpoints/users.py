@@ -9,7 +9,9 @@ from app.db.mongo import get_db
 from app.utils.file_utils import save_profile_image, delete_old_image
 
 from app.services.user_service import (
-    fetch_users
+    create_user,
+    fetch_users,
+    get_user_by_email
 )
 
 router = APIRouter()
@@ -32,6 +34,31 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "role": current_user.get("role"),
         "profile_image": current_user.get("profile_image"),
         "created_at": current_user["created_at"],
+    }
+@router.post("/new-member", response_model=UserOut)
+async def new_member(
+        email: str = Form(...),
+        password: str = Form(...),
+        name: str = Form(...),
+        role: str = Form("member"),
+        birthdate: Optional[str] = Form(None),
+        profile_image: Optional[UploadFile] = File(None),
+        db=Depends(get_db)
+):
+    existing_user = await get_user_by_email(db, email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    new_user = await create_user(db, email, password, name, role, birthdate, profile_image)
+
+    return {
+        "id": str(new_user["_id"]),
+        "email": new_user["email"],
+        "name": new_user.get("name"),
+        "role": new_user.get("role"),
+        "profile_image": new_user.get("profile_image"),
+        "birthdate": new_user.get("birthdate"),
+        "created_at": new_user["created_at"],
     }
 
 @router.put("/{user_id}")
@@ -103,7 +130,7 @@ async def update_user_by_id(
         "email": updated_user["email"],
         "name": updated_user.get("name"),
         "role": updated_user.get("role"),
-        "profileImage": updated_user.get("profile_image"),
+        "profile_image": updated_user.get("profile_image"),
         "birthdate": updated_user.get("birthdate"),
         "created_at": updated_user["created_at"],
     }
