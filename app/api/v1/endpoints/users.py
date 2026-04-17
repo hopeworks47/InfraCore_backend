@@ -107,3 +107,33 @@ async def update_user_by_id(
         "birthdate": updated_user.get("birthdate"),
         "created_at": updated_user["created_at"],
     }
+
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+async def delete_user(
+    user_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db),
+):
+    # 1. Authorization: only the user themselves or an admin can delete
+    if str(current_user["_id"]) != user_id and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    # 2. Validate user_id format
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(400, "Invalid user ID")
+
+    # 3. Fetch the user to get the profile image path
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    # 4. Delete profile image from disk if it exists
+    if user.get("profile_image"):
+        delete_old_image(user["profile_image"])   # e.g., removes file from uploads/
+
+    # 5. Delete the user document from MongoDB
+    result = await db.users.delete_one({"_id": ObjectId(user_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "User not found")
+
+    return {"message": "User deleted successfully", "deletedUserId": user_id}
