@@ -3,15 +3,16 @@ from fastapi.encoders import jsonable_encoder
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime
-from app.core.security import get_current_user  # your dependency that extracts user from token
-from app.schemas.user import UserOut, UserUpdate
+from app.core.security import get_current_user, verify_password, hash_password  # your dependency that extracts user from token
+from app.schemas.user import UserOut, PasswordChangeRequest
 from app.db.mongo import get_db
 from app.utils.file_utils import save_profile_image, delete_old_image
 
 from app.services.user_service import (
     create_user,
     fetch_users,
-    get_user_by_email
+    get_user_by_email,
+    update_user_password,
 )
 
 router = APIRouter()
@@ -164,3 +165,34 @@ async def delete_user(
         raise HTTPException(404, "User not found")
 
     return {"message": "User deleted successfully", "deletedUserId": user_id}
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+async def change_password(
+    password_data: PasswordChangeRequest,
+    current_user = Depends(get_current_user),
+    db = Depends(get_db)
+):
+    # 1. Verify current password
+    if not verify_password(password_data.current_password, current_user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+
+    # 2. Prevent reusing the same password
+    if verify_password(password_data.new_password, current_user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password cannot be the same as current password"
+        )
+
+    # 3. Hash new password
+    new_hashed = hash_password(password_data.new_password)
+
+    # 4. Update in MongoDB
+    await db.users.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": {"hashed_password": new_hashed}}
+    )
+
+    return {"message": "Password changed successfully"}

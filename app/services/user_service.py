@@ -3,9 +3,11 @@ from fastapi import UploadFile, File, Form
 from typing import Optional
 from datetime import datetime
 
-from app.core.security import hash_password, verify_password
 from app.utils.file_utils import save_profile_image
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+from app.schemas.user import UserOut
+from app.core.security import verify_password, hash_password
 
 async def get_user_by_email(db, email: str):
     return await db.users.find_one({"email": email})
@@ -50,3 +52,9 @@ async def authenticate_user(db, email: str, password: str):
     if not verify_password(password, user["hashed_password"]):
         return None
     return user
+
+async def update_user_password(db: AsyncSession, user_id: int, new_hashed_password: str):
+    await db.execute(
+        update(UserOut).where(UserOut.id == user_id).values(hashed_password=new_hashed_password)
+    )
+    await db.commit()

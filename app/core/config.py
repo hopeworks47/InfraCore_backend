@@ -1,3 +1,4 @@
+from typing import List
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -6,7 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: float = 60
     REFRESH_TOKEN_EXPIRE_DAYS: float = 7
-    ORIGIN_URL: str
+    ORIGIN_URL: List[str]
 
     class Config:
         env_file = ".env"

@@ -1,7 +1,9 @@
+from dataclasses import Field
+
 from fastapi import UploadFile, File
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, Field, validator
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -45,3 +47,14 @@ class Token(BaseModel):
 
 class RefreshRequest(BaseModel):
     refreshToken: str
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=6)
+    confirm_password: str = Field(..., min_length=6)
+
+    @validator('confirm_password')
+    def passwords_match(cls, v, values):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('new_password and confirm_password do not match')
+        return v

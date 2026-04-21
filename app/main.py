@@ -9,7 +9,7 @@ app = FastAPI(title="InfraCore API")
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # CORS
-origins = [settings.ORIGIN_URL]
+origins = settings.ORIGIN_URL
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
