@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File, Request
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
@@ -25,12 +25,11 @@ async def create_project(
     title: str = Form(...),
     description: Optional[str] = Form(None),
     priority: str = Form("medium"),
-    type: str = Form("Task"),
+    task_type: str = Form("Task"),
     assignee_id: Optional[str] = Form(None),
     due_date: Optional[str] = Form(None),
     status: str = Form("todo"),
     attachments: List[UploadFile] = File([]),  # 👈 accept multiple files
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
 ):
     # Parse due_date
@@ -45,7 +44,7 @@ async def create_project(
     attachment_paths = []
     for file in attachments:
         if file and file.filename:
-            path = await save_image(file, folder="project_attachments")
+            path = await save_image(file, "project_attachments")
             attachment_paths.append(path)
 
     # MongoDB document
@@ -53,19 +52,18 @@ async def create_project(
         "title": title,
         "description": description,
         "priority": priority,
-        "type": type,
+        "task_type": task_type,
         "assignee_id": assignee_id,
         "due_date": due_date_parsed.isoformat() if due_date_parsed else None,
         "status": status,
         "attachments": attachment_paths,   # 👈 store array of paths
-        "created_by": str(current_user["_id"]),
         "created_at": datetime.utcnow(),
-        "updated_at": None,
+        "updated_at": datetime.utcnow(),
     }
 
     result = await db.projects.insert_one(new_project)
     created = await db.projects.find_one({"_id": result.inserted_id})
-    created["_id"] = str(created["_id"])
+    created["id"] = str(created["_id"])
     return created
 
 # --- DELETE Project ---

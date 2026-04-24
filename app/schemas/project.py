@@ -12,22 +12,24 @@ class ProjectCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
     priority: str = "medium"
-    type: str = "Task"
+    task_type: str = "Task"
     assignee_id: Optional[str] = None
     due_date: Optional[date] = None
     status: str = "todo"
+    attachments: Optional[List[str]] = None  # 👈 array of URLs
 
 class ProjectOut(BaseModel):
     id: str
     title: str
     description: Optional[str] = None
     priority: str
-    type: str
+    task_type: str
     assignee_id: Optional[str] = None
     due_date: Optional[str] = None
     status: str
     attachments: Optional[List[str]] = None   # 👈 array of URLs
     created_at: datetime
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
