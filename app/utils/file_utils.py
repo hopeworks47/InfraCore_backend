@@ -3,12 +3,12 @@ import shutil
 from fastapi import UploadFile
 from uuid import uuid4
 
-UPLOAD_DIR = "uploads/profile_images"
+UPLOAD_DIR = "uploads"
 
 def ensure_upload_dir():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-async def save_profile_image(file: UploadFile) -> str:
+async def save_image(file: UploadFile, folder: str='images') -> str:
     ensure_upload_dir()
     # Generate unique filename
     ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
@@ -18,7 +18,7 @@ async def save_profile_image(file: UploadFile) -> str:
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     # Return relative path (or full URL)
-    return f"/uploads/profile_images/{filename}"
+    return f"/uploads/{folder}/{filename}"
 
 def delete_old_image(image_path: str):
     if image_path and os.path.exists(image_path.lstrip("/")):

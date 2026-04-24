@@ -6,7 +6,7 @@ from datetime import datetime
 from app.core.security import get_current_user, verify_password, hash_password  # your dependency that extracts user from token
 from app.schemas.user import UserOut, PasswordChangeRequest
 from app.db.mongo import get_db
-from app.utils.file_utils import save_profile_image, delete_old_image
+from app.utils.file_utils import save_image, delete_old_image
 
 from app.services.user_service import (
     create_user,
@@ -110,7 +110,7 @@ async def update_user_by_id(
         if old_user and old_user.get("profile_image"):
             delete_old_image(old_user["profile_image"])
         # Save new image
-        image_path = await save_profile_image(profile_image)
+        image_path = await save_image(profile_image, "profile_image")
         update_dict["profile_image"] = image_path
 
     if not update_dict:

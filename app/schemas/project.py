@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import date, datetime
 from bson import ObjectId
 
 class Comment(BaseModel):
@@ -9,12 +9,25 @@ class Comment(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ProjectCreate(BaseModel):
-    name: str
+    title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
+    priority: str = "medium"
+    type: str = "Task"
+    assignee_id: Optional[str] = None
+    due_date: Optional[date] = None
     status: str = "todo"
-    priority: str = "medium"   # low, medium, high
-    assignee_id: Optional[str] = None   # user ObjectId
-    due_date: Optional[datetime] = None
+
+class ProjectOut(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    priority: str
+    type: str
+    assignee_id: Optional[str] = None
+    due_date: Optional[str] = None
+    status: str
+    attachments: Optional[List[str]] = None   # 👈 array of URLs
+    created_at: datetime
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -24,14 +37,3 @@ class ProjectUpdate(BaseModel):
     assignee_id: Optional[str] = None
     due_date: Optional[datetime] = None
     comments: Optional[List[Comment]] = None
-
-class ProjectOut(BaseModel):
-    id: str
-    name: str
-    description: Optional[str]
-    status: str
-    priority: str
-    assignee_id: Optional[str]
-    due_date: Optional[datetime]
-    created_at: datetime
-    updated_at: Optional[datetime]

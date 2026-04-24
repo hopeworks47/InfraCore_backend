@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.security import get_current_user
 from app.db.mongo import get_db
 from app.schemas.project import Comment, ProjectUpdate, ProjectCreate, ProjectOut
+from app.utils.file_utils import save_image
 
 router = APIRouter()
 
@@ -19,23 +20,53 @@ async def get_projects(current_user = Depends(get_current_user), db = Depends(ge
     return projects
 
 # --- CREATE Project ---
-@router.post("/", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
+@router.post("/new-project", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
 async def create_project(
-    project: ProjectCreate,
-    current_user: dict = Depends(get_current_user),   # authentication
-    db: AsyncIOMotorDatabase = Depends(get_db),
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    priority: str = Form("medium"),
+    type: str = Form("Task"),
+    assignee_id: Optional[str] = Form(None),
+    due_date: Optional[str] = Form(None),
+    status: str = Form("todo"),
+    attachments: List[UploadFile] = File([]),  # 👈 accept multiple files
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_db),
 ):
-    new_project = project.dict()
-    new_project["created_at"] = datetime.utcnow()
-    new_project["updated_at"] = None
-    new_project["comments"] = []      # optional, for future comments
+    # Parse due_date
+    due_date_parsed = None
+    if due_date:
+        try:
+            due_date_parsed = datetime.strptime(due_date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(400, "Due date must be in YYYY-MM-DD format")
+
+    # Handle multiple attachments
+    attachment_paths = []
+    for file in attachments:
+        if file and file.filename:
+            path = await save_image(file, folder="project_attachments")
+            attachment_paths.append(path)
+
+    # MongoDB document
+    new_project = {
+        "title": title,
+        "description": description,
+        "priority": priority,
+        "type": type,
+        "assignee_id": assignee_id,
+        "due_date": due_date_parsed.isoformat() if due_date_parsed else None,
+        "status": status,
+        "attachments": attachment_paths,   # 👈 store array of paths
+        "created_by": str(current_user["_id"]),
+        "created_at": datetime.utcnow(),
+        "updated_at": None,
+    }
 
     result = await db.projects.insert_one(new_project)
-    created_project = await db.projects.find_one({"_id": result.inserted_id})
-
-    # Convert _id to string for response
-    created_project["id"] = str(created_project.pop("_id"))
-    return created_project
+    created = await db.projects.find_one({"_id": result.inserted_id})
+    created["_id"] = str(created["_id"])
+    return created
 
 # --- DELETE Project ---
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)

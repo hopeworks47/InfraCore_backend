@@ -3,7 +3,7 @@ from fastapi import UploadFile, File, Form
 from typing import Optional
 from datetime import datetime
 
-from app.utils.file_utils import save_profile_image
+from app.utils.file_utils import save_image
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from app.schemas.user import UserOut
@@ -26,7 +26,7 @@ async def create_user(
 ):
     profile_image_path = None
     if profile_image and profile_image.filename:
-        profile_image_path = await save_profile_image(profile_image)
+        profile_image_path = await save_image(profile_image, "profile_image")
 
     # Hash password (implement hash_password accordingly)
     hashed = hash_password(password)
