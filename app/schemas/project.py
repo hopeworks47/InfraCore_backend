@@ -32,10 +32,14 @@ class ProjectOut(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
+    _id: str
+    title: str
     description: Optional[str] = None
     status: Optional[str] = None
     priority: Optional[str] = None
+    task_type: str
     assignee_id: Optional[str] = None
     due_date: Optional[datetime] = None
-    comments: Optional[List[Comment]] = None
+    attachments: Optional[List[str]] = None
+    created_at: datetime
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

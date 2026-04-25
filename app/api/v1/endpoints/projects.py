@@ -11,8 +11,8 @@ from app.utils.file_utils import save_image
 
 router = APIRouter()
 
-@router.get("/", response_model=List[dict])
-async def get_projects(current_user = Depends(get_current_user), db = Depends(get_db)):
+@router.get("/", response_model=List[dict], status_code=status.HTTP_200_OK)
+async def get_projects(db = Depends(get_db)):
     cursor = db.projects.find()
     projects = await cursor.to_list(length=100)
     for p in projects:
@@ -100,23 +100,32 @@ async def add_comment(
         raise HTTPException(404, "Project not found")
     return {"message": "Comment added"}
 
+
 @router.patch("/{project_id}")
 async def update_project(
-    project_id: str,
-    update: ProjectUpdate,
-    current_user: dict = Depends(get_current_user),
-    db = Depends(get_db),
+        project_id: str,
+        update: ProjectUpdate,
+        current_user: dict = Depends(get_current_user),
+        db=Depends(get_db),
 ):
     if not ObjectId.is_valid(project_id):
         raise HTTPException(400, "Invalid ID")
+
     update_data = {k: v for k, v in update.dict(exclude_unset=True).items() if v is not None}
+    # Remove any client-attempt to set updated_at manually
+    update_data.pop("updated_at", None)
+
     if not update_data:
         raise HTTPException(400, "No fields to update")
+
     result = await db.projects.update_one(
         {"_id": ObjectId(project_id)},
         {"$set": update_data, "$currentDate": {"updated_at": True}}
     )
     if result.matched_count == 0:
         raise HTTPException(404, "Project not found")
+
     updated = await db.projects.find_one({"_id": ObjectId(project_id)})
+    if updated:
+        updated["_id"] = str(updated["_id"])
     return updated
