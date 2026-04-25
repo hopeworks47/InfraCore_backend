@@ -41,5 +41,6 @@ class ProjectUpdate(BaseModel):
     assignee_id: Optional[str] = None
     due_date: Optional[datetime] = None
     attachments: Optional[List[str]] = None
+    comments: Optional[List[Comment]] = None
     created_at: datetime
     updated_at: datetime = Field(default_factory=datetime.utcnow)
